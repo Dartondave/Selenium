@@ -21,10 +21,11 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Install Python dependencies (no binary wheels)
+      - name: Install Python and Selenium (no-binary)
         run: |
           python -m pip install --upgrade pip
-          pip install --no-binary :all: selenium
+          python -m pip install --no-binary :all: selenium
+          pip list  # List installed packages to verify
 
       - name: Install Chromium and ChromeDriver
         run: |

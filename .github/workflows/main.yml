@@ -1,4 +1,4 @@
-name: Run Selenium Tests
+name: Run Headless Selenium Script
 
 on:
   push:
@@ -13,26 +13,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check out repository
+      - name: Check out the repository
         uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
         with:
-          python-version: '3.x'
+          node-version: '16.x'
 
-      - name: Install Python and Selenium (no-binary)
+      - name: Install Selenium dependencies
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install --no-binary :all: selenium
-          pip list  # List installed packages to verify
-
-      - name: Install Chromium and ChromeDriver
-        run: |
+          npm install selenium-webdriver
           sudo apt-get update
           sudo apt-get install -y chromium-browser chromium-chromedriver
           echo "/usr/bin" >> $GITHUB_PATH
 
       - name: Run Selenium script
         run: |
-          python selenium_test.py
+          node main.js

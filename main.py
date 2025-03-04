@@ -1,5 +1,6 @@
 import requests
 import time
+import json
 from seleniumwire import webdriver  # using seleniumwire to intercept requests
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -54,6 +55,7 @@ if not user_data_loaded:
 
 # ====== Step 3: Set up Selenium with Request Interceptor and Mobile Emulation ======
 chrome_options = Options()
+# For debugging, you might temporarily disable headless mode:
 chrome_options.add_argument("--headless")
 chrome_options.add_argument("--disable-gpu")
 chrome_options.add_argument("--no-sandbox")
@@ -73,7 +75,25 @@ driver.request_interceptor = interceptor
 driver.get("https://gold-eagle-api.fly.dev/user/me")
 time.sleep(3)  # wait for the page to load completely
 
-# ====== Step 5: Inject the External JavaScript File ======
+# ====== Step 5: Inject Telegram Initialization Data ======
+# Replace the values below with the ones captured from your Kiwi session.
+init_params = {
+    "tgWebAppData": "query_id=AAG8XExdAAAAALxcTF0fzld9&user=%7B%22id%22%3A1565285564%2C%22first_name%22%3A%22%E6%B0%94DARTON%E4%B9%88%22%2C%22last_name%22%3A%22%22%2C%22username%22%3A%22DartonTV%22%2C%22language_code%22%3A%22en%22%2C%22allows_write_to_pm%22%3Atrue%2C%22photo_url%22%3A%22https%3A//t.me/i/userpic/320/iy3Hp0CdIo6mZaYfi83EHd7h2nPyXG1Fd5V50-SkD2I.svg%22%7D",
+    "tgWebAppVersion": "7.10",
+    "tgWebAppPlatform": "ios",
+    "tgWebAppThemeParams": "{\"bg_color\":\"#212121\",\"button_color\":\"#8774e1\",\"button_text_color\":\"#ffffff\",\"hint_color\":\"#aaaaaa\",\"link_color\":\"#8774e1\",\"secondary_bg_color\":\"#181818\",\"text_color\":\"#ffffff\",\"header_bg_color\":\"#212121\",\"accent_text_color\":\"#8774e1\",\"section_bg_color\":\"#212121\",\"section_header_text_color\":\"#8774e1\",\"subtitle_text_color\":\"#aaaaaa\",\"destructive_text_color\":\"#ff595a\"}"
+}
+# Inject these parameters into the page as window.Telegram.WebApp.initParams and also into session storage.
+driver.execute_script(f"""
+    window.Telegram = window.Telegram || {{}};
+    window.Telegram.WebApp = window.Telegram.WebApp || {{}};
+    window.Telegram.WebApp.initParams = {json.dumps(init_params)};
+    sessionStorage.setItem('__telegram__initParams', JSON.stringify({json.dumps(init_params)}));
+""")
+print("[+] Telegram initParams injected.")
+time.sleep(2)
+
+# ====== Step 6: Inject the External JS File ======
 js_url = "https://telegram.geagle.online/assets/index-BC9KxTS7.js"
 inject_script = f"""
 var script = document.createElement('script');
@@ -83,10 +103,10 @@ document.head.appendChild(script);
 """
 driver.execute_script(inject_script)
 print("[+] External JS injected.")
-time.sleep(5)  # wait for the external JS to load
+time.sleep(5)  # wait for the external JS to load and process the initParams
 
-# ====== Step 6: Locate the Coin/Tap Area Element ======
-# We try an XPath that finds any element whose style includes "gold-eagle-coin.svg".
+# ====== Step 7: Locate the Coin/Tap Area Element ======
+# Try locating an element whose style contains the coin image.
 try:
     coin_element = WebDriverWait(driver, 30).until(
         EC.visibility_of_element_located(
@@ -96,16 +116,20 @@ try:
     print("[+] Coin element found.")
 except Exception as e:
     print("[-] Coin element not found:", e)
+    # For debugging, save a screenshot and print part of the page source.
+    driver.get_screenshot_as_file("debug_after_injection.png")
+    print("Screenshot saved as debug_after_injection.png")
+    print(driver.page_source[:2000])
     driver.quit()
     exit()
 
-# ====== Step 7: Tap the Coin Element Repeatedly ======
-tap_count = 10  # Adjust as needed
+# ====== Step 8: Tap the Coin Element Repeatedly ======
+tap_count = 10  # Adjust number of taps as needed
 for i in range(tap_count):
     try:
         driver.execute_script("arguments[0].click();", coin_element)
         print(f"[+] Tapped coin {i+1} times.")
-        time.sleep(1)  # Delay between taps (adjust if needed)
+        time.sleep(1)
     except Exception as e:
         print(f"[-] Error on tap {i+1}:", e)
 

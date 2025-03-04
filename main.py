@@ -23,17 +23,25 @@ driver = webdriver.Chrome(service=service, options=chrome_options)
 # Open the target URL where the website generates the payload
 driver.get('https://telegram.geagle.online')
 
-# Wait for the clickable element (the button)
+# Optional: for debugging, you can take a screenshot to ensure the page loaded correctly
+# driver.get_screenshot_as_file("screenshot.png")
+
+# Wait for the element to be visible using a more generic selector if needed.
 try:
+    # You can try either the exact class or a more flexible one:
     tap_area = WebDriverWait(driver, 20).until(
-        EC.element_to_be_clickable((By.CSS_SELECTOR, "div._tapArea_njdmz_15"))
+        EC.visibility_of_element_located((By.CSS_SELECTOR, "div._tapArea_njdmz_15"))
+        # Alternatively, try:
+        # EC.visibility_of_element_located((By.CSS_SELECTOR, "div[class^='_tapArea']"))
     )
-    tap_area.click()
+    # Use JavaScript click if normal click doesn't work
+    driver.execute_script("arguments[0].click();", tap_area)
+    print("Button clicked using JavaScript.")
 except Exception as e:
     print("Button not found or not clickable:", e)
 
-# Wait for the POST request to be generated after the click
-time.sleep(15)  # Adjust as necessary
+# Wait for the POST request to be generated after clicking the button
+time.sleep(15)  # Adjust this based on how long the request takes
 
 # Intercept the network requests to find the POST request to the API endpoint
 captured_payload = None

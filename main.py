@@ -5,6 +5,10 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 import time
 import json
+import requests
+
+# Import WebDriverManager for Chrome
+from webdriver_manager.chrome import ChromeDriverManager
 
 # Configure Selenium to use Chrome in headless mode
 chrome_options = Options()
@@ -13,29 +17,23 @@ chrome_options.add_argument("--disable-gpu")
 chrome_options.add_argument("--no-sandbox")
 chrome_options.add_argument("--disable-dev-shm-usage")
 
-# Set up the WebDriver
-service = Service('/path/to/chromedriver')
+# Set up the Chrome driver using WebDriverManager
+service = Service(ChromeDriverManager().install())
 driver = webdriver.Chrome(service=service, options=chrome_options)
 
 # Open the target URL
 driver.get('https://telegram.geagle.online')
 
-# Perform actions to trigger the network request (if necessary)
-# Example: Find an element and interact with it
+# Wait for the page to load and any necessary JavaScript to execute
+time.sleep(5)
+
+# Example: If you need to interact with any elements on the page, you can do so here
+# For instance:
 # element = driver.find_element(By.NAME, 'element_name')
 # element.send_keys('some text')
 # element.send_keys(Keys.RETURN)
 
-# Wait for the page to load and any necessary JavaScript to execute
-time.sleep(5)
-
-# Retrieve the network request details
-# Note: Selenium does not support directly capturing network requests
-# You may need to use browser developer tools or a proxy to capture the request details and reproduce them in the script
-
-# Example: Send the POST request using requests library
-import requests
-
+# Prepare to send a POST request using the requests library
 url = 'https://gold-eagle-api.fly.dev/tap'
 headers = {
     'Authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyIjp7ImlkIjoiYzA5YTE2MGMtNTFmMC00MjdiLTkxMzktNGQwZDdmYWNhMWU5IiwiZmlyc3RfbmFtZSI6IuawlERBUlRPTuS5iCIsImxhbmd1YWdlX2NvZGUiOiJlbiIsInVzZXJuYW1lIjoiRGFydG9uVFYifSwic2Vzc2lvbl9pZCI6MTQzNzI1NCwic3ViIjoiYzA5YTE2MGMtNTFmMC00MjdiLTkxMzktNGQwZDdmYWNhMWU5IiwiZXhwIjoxNzQyOTc4MjUzfQ.f_0ScBVxthVpykNsiFI-QCqxDxhaxioVqq3PXtyG_Iw',
@@ -49,8 +47,8 @@ payload = json.dumps({
 
 response = requests.post(url, headers=headers, data=payload)
 
-print(response.status_code)
-print(response.text)
+print("Status Code:", response.status_code)
+print("Response Text:", response.text)
 
-# Clean up
+# Clean up and close the browser
 driver.quit()

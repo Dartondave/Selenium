@@ -1,6 +1,6 @@
 import requests
 import time
-from seleniumwire import webdriver  # Using seleniumwire to capture network requests if needed
+from seleniumwire import webdriver  # Note: using seleniumwire for request interception
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -27,7 +27,7 @@ if not tokens:
     exit()
 token = tokens[0]  # Use the first token from the file
 
-# Set headers using the token read from the file
+# Set headers for API calls using the token
 headers = {
     "authorization": f"Bearer {token}",
     "content-type": "application/json",
@@ -56,7 +56,7 @@ if not user_data_loaded:
     print("[-] User data not loaded. Exiting.")
     exit()
 
-# ====== Step 3: Open the Website in a Headless Browser ======
+# ====== Step 3: Set up Selenium with a Request Interceptor ======
 chrome_options = Options()
 chrome_options.add_argument("--headless")
 chrome_options.add_argument("--disable-gpu")
@@ -67,13 +67,21 @@ chrome_options.add_argument("--disable-dev-shm-usage")
 service = Service(ChromeDriverManager().install())
 driver = webdriver.Chrome(service=service, options=chrome_options)
 
-# Optionally, you could inject the token into localStorage if needed by the website:
-# driver.get("https://telegram.geagle.online")
-# driver.execute_script("window.localStorage.setItem('authToken', arguments[0]);", token)
+# Define an interceptor to attach the authorization header to every request.
+def interceptor(request):
+    request.headers['authorization'] = f"Bearer {token}"
 
+driver.request_interceptor = interceptor
+
+# ====== Step 4: Navigate to the /user/me endpoint first ======
+driver.get("https://gold-eagle-api.fly.dev/user/me")
+time.sleep(3)  # Allow time for any session/cookie setup
+
+# ====== Step 5: Navigate to the main website ======
 driver.get("https://telegram.geagle.online")
+time.sleep(3)  # Allow time for the page to load
 
-# ====== Step 4: Locate the Tap Area Element ======
+# ====== Step 6: Locate the Tap Area Element ======
 try:
     tap_area = WebDriverWait(driver, 20).until(
         EC.visibility_of_element_located((By.CSS_SELECTOR, "div._tapArea_njdmz_15"))
@@ -84,11 +92,11 @@ except Exception as e:
     driver.quit()
     exit()
 
-# ====== Step 5: Tap the Element Repeatedly ======
+# ====== Step 7: Tap the Element Repeatedly ======
 tap_count = 10  # Adjust the number of taps as needed
 for i in range(tap_count):
     try:
-        # Using JavaScript click to ensure the click is triggered even if Selenium’s native click fails in headless mode.
+        # Use JavaScript click to trigger the tap event
         driver.execute_script("arguments[0].click();", tap_area)
         print(f"[+] Tapped button {i+1} times.")
         time.sleep(1)  # Adjust delay between taps if necessary

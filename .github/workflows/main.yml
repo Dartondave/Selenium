@@ -25,7 +25,7 @@ jobs:
         pip install selenium requests
         pip install webdriver-manager
         pip install selenium-wire
-        pip install blinker
+        pip install selenium-wire webdriver-manager blinker==1.4
 
     - name: Download ChromeDriver
       run: |

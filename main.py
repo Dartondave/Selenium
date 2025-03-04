@@ -1,7 +1,7 @@
 import requests
 import time
 import json
-from seleniumwire import webdriver  # using seleniumwire to intercept requests
+from seleniumwire import webdriver  # using seleniumwire for request interception
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -55,7 +55,7 @@ if not user_data_loaded:
 
 # ====== Step 3: Set up Selenium with Request Interceptor and Mobile Emulation ======
 chrome_options = Options()
-# For debugging, you might temporarily disable headless mode:
+# For debugging, you can temporarily disable headless mode by commenting out the next line.
 chrome_options.add_argument("--headless")
 chrome_options.add_argument("--disable-gpu")
 chrome_options.add_argument("--no-sandbox")
@@ -71,19 +71,23 @@ def interceptor(request):
     request.headers['authorization'] = f"Bearer {token}"
 driver.request_interceptor = interceptor
 
-# ====== Step 4: Navigate to the User Page ======
-driver.get("https://telegram.geagle.online")
-time.sleep(3)  # wait for the page to load completely
+# ====== Step 4: Load the Full UI URL ======
+# Construct the full URL with initialization parameters from your Kiwi session.
+full_url = ("https://telegram.geagle.online/#"
+            "tgWebAppData=query_id=AAG8XExdAAAAALxcTF0fzld9&"
+            "tgWebAppThemeParams=%7B%22bg_color%22%3A%22%23212121%22%2C%22button_color%22%3A%22%238774e1%22%2C%22button_text_color%22%3A%22%23ffffff%22%2C%22hint_color%22%3A%22%23aaaaaa%22%2C%22link_color%22%3A%22%238774e1%22%2C%22secondary_bg_color%22%3A%22%23181818%22%2C%22text_color%22%3A%22%23ffffff%22%2C%22header_bg_color%22%3A%22%23212121%22%2C%22accent_text_color%22%3A%22%238774e1%22%2C%22section_bg_color%22%3A%22%23212121%22%2C%22section_header_text_color%22%3A%22%238774e1%22%2C%22subtitle_text_color%22%3A%22%23aaaaaa%22%2C%22destructive_text_color%22%3A%22%23ff595a%22%7D&"
+            "tgWebAppVersion=7.10&"
+            "tgWebAppPlatform=ios")
+driver.get(full_url)
+time.sleep(5)  # Wait for the full UI to load
 
-# ====== Step 5: Inject Telegram Initialization Data ======
-# Replace the values below with the ones captured from your Kiwi session.
+# ====== Step 5: Inject Telegram Initialization Data (in case it's needed) ======
 init_params = {
     "tgWebAppData": "query_id=AAG8XExdAAAAALxcTF0fzld9&user=%7B%22id%22%3A1565285564%2C%22first_name%22%3A%22%E6%B0%94DARTON%E4%B9%88%22%2C%22last_name%22%3A%22%22%2C%22username%22%3A%22DartonTV%22%2C%22language_code%22%3A%22en%22%2C%22allows_write_to_pm%22%3Atrue%2C%22photo_url%22%3A%22https%3A//t.me/i/userpic/320/iy3Hp0CdIo6mZaYfi83EHd7h2nPyXG1Fd5V50-SkD2I.svg%22%7D",
     "tgWebAppVersion": "7.10",
     "tgWebAppPlatform": "ios",
     "tgWebAppThemeParams": "{\"bg_color\":\"#212121\",\"button_color\":\"#8774e1\",\"button_text_color\":\"#ffffff\",\"hint_color\":\"#aaaaaa\",\"link_color\":\"#8774e1\",\"secondary_bg_color\":\"#181818\",\"text_color\":\"#ffffff\",\"header_bg_color\":\"#212121\",\"accent_text_color\":\"#8774e1\",\"section_bg_color\":\"#212121\",\"section_header_text_color\":\"#8774e1\",\"subtitle_text_color\":\"#aaaaaa\",\"destructive_text_color\":\"#ff595a\"}"
 }
-# Inject these parameters into the page as window.Telegram.WebApp.initParams and also into session storage.
 driver.execute_script(f"""
     window.Telegram = window.Telegram || {{}};
     window.Telegram.WebApp = window.Telegram.WebApp || {{}};
@@ -93,7 +97,8 @@ driver.execute_script(f"""
 print("[+] Telegram initParams injected.")
 time.sleep(2)
 
-# ====== Step 6: Inject the External JS File ======
+# ====== Step 6: (Optional) Inject External JS File ======
+# If the page did not automatically load the external JS, inject it.
 js_url = "https://telegram.geagle.online/assets/index-BC9KxTS7.js"
 inject_script = f"""
 var script = document.createElement('script');
@@ -103,10 +108,10 @@ document.head.appendChild(script);
 """
 driver.execute_script(inject_script)
 print("[+] External JS injected.")
-time.sleep(5)  # wait for the external JS to load and process the initParams
+time.sleep(5)  # Allow time for the external JS to load and process the initParams
 
 # ====== Step 7: Locate the Coin/Tap Area Element ======
-# Try locating an element whose style contains the coin image.
+# We attempt to locate an element that appears to represent the coin.
 try:
     coin_element = WebDriverWait(driver, 30).until(
         EC.visibility_of_element_located(
@@ -116,7 +121,6 @@ try:
     print("[+] Coin element found.")
 except Exception as e:
     print("[-] Coin element not found:", e)
-    # For debugging, save a screenshot and print part of the page source.
     driver.get_screenshot_as_file("debug_after_injection.png")
     print("Screenshot saved as debug_after_injection.png")
     print(driver.page_source[:2000])
@@ -124,7 +128,7 @@ except Exception as e:
     exit()
 
 # ====== Step 8: Tap the Coin Element Repeatedly ======
-tap_count = 10  # Adjust number of taps as needed
+tap_count = 10  # Adjust the number of taps as needed
 for i in range(tap_count):
     try:
         driver.execute_script("arguments[0].click();", coin_element)

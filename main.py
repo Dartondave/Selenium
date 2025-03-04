@@ -21,14 +21,14 @@ def load_tokens(filename="data.txt"):
         print(f"[-] {filename} not found!")
         return []
 
-# ====== Step 1: Load token from data.txt ======
+# Step 1: Load token from data.txt
 tokens = load_tokens()
 if not tokens:
     print("[-] No tokens available. Exiting.")
     exit()
-token = tokens[0]  # use the first token
+token = tokens[0]  # Use the first token
 
-# ====== Step 2: Poll the API for User Balance ======
+# Step 2: Poll the API for User Balance (to ensure the account is valid)
 headers = {
     "authorization": f"Bearer {token}",
     "content-type": "application/json",
@@ -36,7 +36,7 @@ headers = {
 }
 progress_api_url = "https://gold-eagle-api.fly.dev/user/me/progress"
 user_data_loaded = False
-for i in range(30):  # poll for up to 30 seconds
+for i in range(30):  # Poll for up to 30 seconds
     try:
         response = requests.get(progress_api_url, headers=headers, timeout=5)
         if response.status_code == 200:
@@ -53,9 +53,9 @@ if not user_data_loaded:
     print("[-] User data not loaded. Exiting.")
     exit()
 
-# ====== Step 3: Set up Selenium with Request Interceptor and Mobile Emulation ======
+# Step 3: Set up Selenium with Request Interceptor and Mobile Emulation
 chrome_options = Options()
-# For debugging, you can temporarily disable headless mode by commenting out the next line.
+# Uncomment the following line to see the browser (non‑headless) for debugging:
 chrome_options.add_argument("--headless")
 chrome_options.add_argument("--disable-gpu")
 chrome_options.add_argument("--no-sandbox")
@@ -71,17 +71,14 @@ def interceptor(request):
     request.headers['authorization'] = f"Bearer {token}"
 driver.request_interceptor = interceptor
 
-# ====== Step 4: Load the Full UI URL ======
-# Construct the full URL with initialization parameters from your Kiwi session.
-full_url = ("https://telegram.geagle.online/#"
-            "tgWebAppData=query_id=AAG8XExdAAAAALxcTF0fzld9&"
-            "tgWebAppThemeParams=%7B%22bg_color%22%3A%22%23212121%22%2C%22button_color%22%3A%22%238774e1%22%2C%22button_text_color%22%3A%22%23ffffff%22%2C%22hint_color%22%3A%22%23aaaaaa%22%2C%22link_color%22%3A%22%238774e1%22%2C%22secondary_bg_color%22%3A%22%23181818%22%2C%22text_color%22%3A%22%23ffffff%22%2C%22header_bg_color%22%3A%22%23212121%22%2C%22accent_text_color%22%3A%22%238774e1%22%2C%22section_bg_color%22%3A%22%23212121%22%2C%22section_header_text_color%22%3A%22%238774e1%22%2C%22subtitle_text_color%22%3A%22%23aaaaaa%22%2C%22destructive_text_color%22%3A%22%23ff595a%22%7D&"
-            "tgWebAppVersion=7.10&"
-            "tgWebAppPlatform=ios")
+# Step 4: Load the Mini-App UI via its referral URL.
+# In your Kiwi session, you likely see the mini‑app at this URL:
+full_url = "https://t.me/gold_eagle_coin_bot/main?startapp=r_gTGFKMkFC5"
 driver.get(full_url)
-time.sleep(5)  # Wait for the full UI to load
+time.sleep(5)  # Wait for the page to load
 
-# ====== Step 5: Inject Telegram Initialization Data (in case it's needed) ======
+# Step 5: Inject Telegram Initialization Data
+# Use the values from your Kiwi session; these sample values mimic what you provided.
 init_params = {
     "tgWebAppData": "query_id=AAG8XExdAAAAALxcTF0fzld9&user=%7B%22id%22%3A1565285564%2C%22first_name%22%3A%22%E6%B0%94DARTON%E4%B9%88%22%2C%22last_name%22%3A%22%22%2C%22username%22%3A%22DartonTV%22%2C%22language_code%22%3A%22en%22%2C%22allows_write_to_pm%22%3Atrue%2C%22photo_url%22%3A%22https%3A//t.me/i/userpic/320/iy3Hp0CdIo6mZaYfi83EHd7h2nPyXG1Fd5V50-SkD2I.svg%22%7D",
     "tgWebAppVersion": "7.10",
@@ -97,21 +94,24 @@ driver.execute_script(f"""
 print("[+] Telegram initParams injected.")
 time.sleep(2)
 
-# ====== Step 6: (Optional) Inject External JS File ======
-# If the page did not automatically load the external JS, inject it.
-js_url = "https://telegram.geagle.online/assets/index-BC9KxTS7.js"
+# Step 6: (Optional) Inject the External JS File if it's not auto-loaded.
+# If the mini‑app doesn’t automatically load the external Telegram JS,
+# inject it manually.
+external_js_url = "https://telegram.geagle.online/assets/index-BC9KxTS7.js"
 inject_script = f"""
 var script = document.createElement('script');
 script.type = 'text/javascript';
-script.src = '{js_url}';
+script.src = '{external_js_url}';
 document.head.appendChild(script);
 """
 driver.execute_script(inject_script)
 print("[+] External JS injected.")
-time.sleep(5)  # Allow time for the external JS to load and process the initParams
+time.sleep(5)  # Wait for external JS to load and process initParams
 
-# ====== Step 7: Locate the Coin/Tap Area Element ======
-# We attempt to locate an element that appears to represent the coin.
+# Step 7: Locate the Coin/Tap Area Element and Simulate a Tap
+# Because the encrypted payload is generated dynamically by the site,
+# we let the website do its work by simulating a user tap.
+# Here we try a broad XPath; adjust if needed based on what you observe.
 try:
     coin_element = WebDriverWait(driver, 30).until(
         EC.visibility_of_element_located(
@@ -127,13 +127,13 @@ except Exception as e:
     driver.quit()
     exit()
 
-# ====== Step 8: Tap the Coin Element Repeatedly ======
-tap_count = 10  # Adjust the number of taps as needed
+# Step 8: Simulate Tapping the Coin Element Repeatedly
+tap_count = 10  # Adjust as needed
 for i in range(tap_count):
     try:
         driver.execute_script("arguments[0].click();", coin_element)
         print(f"[+] Tapped coin {i+1} times.")
-        time.sleep(1)
+        time.sleep(1)  # Delay between taps
     except Exception as e:
         print(f"[-] Error on tap {i+1}:", e)
 

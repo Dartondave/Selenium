@@ -20,24 +20,22 @@ def load_tokens(filename="data.txt"):
         print(f"[-] {filename} not found!")
         return []
 
-# ====== Step 1: Read token from data.txt ======
+# ====== Step 1: Load token from data.txt ======
 tokens = load_tokens()
 if not tokens:
     print("[-] No tokens available. Exiting.")
     exit()
-token = tokens[0]  # Use the first token from the file
+token = tokens[0]  # use the first token
 
-# Set headers for API calls using the token
+# ====== Step 2: Poll the API for User Balance ======
 headers = {
     "authorization": f"Bearer {token}",
     "content-type": "application/json",
     "user-agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36"
 }
-
-# ====== Step 2: Poll the API for User Balance ======
 progress_api_url = "https://gold-eagle-api.fly.dev/user/me/progress"
 user_data_loaded = False
-for i in range(30):  # Poll for up to 30 seconds
+for i in range(30):  # poll for up to 30 seconds
     try:
         response = requests.get(progress_api_url, headers=headers, timeout=5)
         if response.status_code == 200:
@@ -54,12 +52,14 @@ if not user_data_loaded:
     print("[-] User data not loaded. Exiting.")
     exit()
 
-# ====== Step 3: Set up Selenium with Request Interceptor ======
+# ====== Step 3: Set up Selenium with Request Interceptor and Mobile Emulation ======
 chrome_options = Options()
 chrome_options.add_argument("--headless")
 chrome_options.add_argument("--disable-gpu")
 chrome_options.add_argument("--no-sandbox")
 chrome_options.add_argument("--disable-dev-shm-usage")
+# Set a mobile user agent similar to Kiwi's
+chrome_options.add_argument("--user-agent=Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Kiwi/5.0 Chrome/87.0.4280.141 Mobile Safari/537.36")
 
 service = Service(ChromeDriverManager().install())
 driver = webdriver.Chrome(service=service, options=chrome_options)
@@ -67,24 +67,30 @@ driver = webdriver.Chrome(service=service, options=chrome_options)
 # Attach the authorization header to every outgoing request.
 def interceptor(request):
     request.headers['authorization'] = f"Bearer {token}"
-
 driver.request_interceptor = interceptor
 
 # ====== Step 4: Navigate to the User Page ======
-# Now we open the page where the coin (tap area) is rendered.
 driver.get("https://gold-eagle-api.fly.dev/user/me")
-time.sleep(3)  # Wait for the page to load completely
+time.sleep(3)  # wait for the page to load completely
 
-# (Optional) Save a screenshot for debugging:
-driver.get_screenshot_as_file("debug_screenshot.png")
-#print(driver.page_source[:2000])  # You may uncomment this to inspect part of the HTML output
+# ====== Step 5: Inject the External JavaScript File ======
+js_url = "https://telegram.geagle.online/assets/index-BC9KxTS7.js"
+inject_script = f"""
+var script = document.createElement('script');
+script.type = 'text/javascript';
+script.src = '{js_url}';
+document.head.appendChild(script);
+"""
+driver.execute_script(inject_script)
+print("[+] External JS injected.")
+time.sleep(5)  # wait for the external JS to load
 
-# ====== Step 5: Locate the Coin/Tap Area Element ======
+# ====== Step 6: Locate the Coin/Tap Area Element ======
+# We try an XPath that finds any element whose style includes "gold-eagle-coin.svg".
 try:
-    # Use an XPath that searches for a div with a style attribute containing 'gold-eagle-coin.svg'
     coin_element = WebDriverWait(driver, 30).until(
         EC.visibility_of_element_located(
-            (By.XPATH, "//div[contains(@style, 'gold-eagle-coin.svg')]")
+            (By.XPATH, "//*[contains(@style, 'gold-eagle-coin.svg')]")
         )
     )
     print("[+] Coin element found.")
@@ -93,14 +99,13 @@ except Exception as e:
     driver.quit()
     exit()
 
-# ====== Step 6: Tap the Element Repeatedly ======
-tap_count = 10  # Adjust the number of taps as needed
+# ====== Step 7: Tap the Coin Element Repeatedly ======
+tap_count = 10  # Adjust as needed
 for i in range(tap_count):
     try:
-        # Use JavaScript click to simulate the tap
         driver.execute_script("arguments[0].click();", coin_element)
         print(f"[+] Tapped coin {i+1} times.")
-        time.sleep(1)  # Delay between taps; adjust as needed
+        time.sleep(1)  # Delay between taps (adjust if needed)
     except Exception as e:
         print(f"[-] Error on tap {i+1}:", e)
 

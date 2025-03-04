@@ -72,7 +72,7 @@ def interceptor(request):
 driver.request_interceptor = interceptor
 
 # ====== Step 4: Navigate to the User Page ======
-driver.get("https://gold-eagle-api.fly.dev/user/me")
+driver.get("https://telegram.geagle.online")
 time.sleep(3)  # wait for the page to load completely
 
 # ====== Step 5: Inject Telegram Initialization Data ======

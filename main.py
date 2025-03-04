@@ -1,6 +1,9 @@
-from seleniumwire import webdriver  # Note: using seleniumwire instead of selenium
+from seleniumwire import webdriver  # Using seleniumwire to capture network requests
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 import time
 import json
 import requests
@@ -20,14 +23,23 @@ driver = webdriver.Chrome(service=service, options=chrome_options)
 # Open the target URL where the website generates the payload
 driver.get('https://telegram.geagle.online')
 
-# Wait for the page to load and for the website to generate its dynamic payload
-time.sleep(10)  # Adjust the sleep time if necessary
+# Wait for the clickable element (the button)
+try:
+    tap_area = WebDriverWait(driver, 20).until(
+        EC.element_to_be_clickable((By.CSS_SELECTOR, "div._tapArea_njdmz_15"))
+    )
+    tap_area.click()
+except Exception as e:
+    print("Button not found or not clickable:", e)
+
+# Wait for the POST request to be generated after the click
+time.sleep(15)  # Adjust as necessary
 
 # Intercept the network requests to find the POST request to the API endpoint
 captured_payload = None
 target_url = 'https://gold-eagle-api.fly.dev/tap'
 for request in driver.requests:
-    if request.url == target_url and request.method == 'POST':
+    if target_url in request.url and request.method == 'POST':
         try:
             captured_payload = request.body.decode('utf-8')
         except Exception:
@@ -40,7 +52,7 @@ if captured_payload:
     
     # Optionally, forward this payload using the requests library
     headers = {
-        'Authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyIjp7ImlkIjoiYzA5YTE2MGMtNTFmMC00MjdiLTkxMzktNGQwZDdmYWNhMWU5IiwiZmlyc3RfbmFtZSI6IuawlERBUlRPTuS5iCIsImxhbmd1YWdlX2NvZGUiOiJlbiIsInVzZXJuYW1lIjoiRGFydG9uVFYifSwic2Vzc2lvbl9pZCI6MTQzNzI1NCwic3ViIjoiYzA5YTE2MGMtNTFmMC00MjdiLTkxMzktNGQwZDdmYWNhMWU5IiwiZXhwIjoxNzQyOTc4MjUzfQ.f_0ScBVxthVpykNsiFI-QCqxDxhaxioVqq3PXtyG_Iw',
+        'Authorization': 'Bearer YOUR_TOKEN_HERE',
         'Content-Type': 'application/json',
         'Accept': 'application/json, text/plain, */*',
         'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Mobile Safari/537.36'
